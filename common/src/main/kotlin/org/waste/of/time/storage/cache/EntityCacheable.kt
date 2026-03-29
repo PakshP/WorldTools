@@ -3,6 +3,8 @@ package org.waste.of.time.storage.cache
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
 import net.minecraft.nbt.NbtCompound
+import net.minecraft.storage.NbtWriteView
+import net.minecraft.util.ErrorReporter
 import org.waste.of.time.Utils.toByte
 import org.waste.of.time.WorldTools.TIMESTAMP_KEY
 import org.waste.of.time.WorldTools.config
@@ -12,9 +14,11 @@ data class EntityCacheable(
     val entity: Entity
 ) : Cacheable {
     fun compound() = NbtCompound().apply {
-        // saveSelfNbt has a check for RemovalReason.DISCARDED
+        // saveSelfData has a check for RemovalReason.DISCARDED
+        val writeView = NbtWriteView.create(ErrorReporter.Impl())
         EntityType.getId(entity.type)?.let { putString(Entity.ID_KEY, it.toString()) }
-        entity.writeNbt(this)
+        entity.saveSelfData(writeView)
+        copyFrom(writeView.nbt)
 
         if (config.entity.behavior.modifyEntityBehavior) {
             putByte("NoAI", config.entity.behavior.noAI.toByte())

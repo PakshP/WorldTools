@@ -5,7 +5,6 @@ import com.mojang.serialization.JsonOps
 import net.minecraft.advancement.PlayerAdvancementTracker
 import net.minecraft.datafixer.DataFixTypes
 import net.minecraft.text.MutableText
-import net.minecraft.util.PathUtil
 import net.minecraft.util.WorldSavePath
 import net.minecraft.world.level.storage.LevelStorage
 import org.waste.of.time.WorldTools.CURRENT_VERSION
@@ -58,7 +57,7 @@ class AdvancementsStoreable : Storeable() {
 
 
         val advancements = session.getDirectory(WorldSavePath.ADVANCEMENTS)
-        PathUtil.createDirectories(advancements)
+        Files.createDirectories(advancements)
         Files.newBufferedWriter(
             advancements.resolve("$uuid.json"),
             StandardCharsets.UTF_8

@@ -2,14 +2,11 @@
   <img src="https://github.com/Avanatiker/WorldTools/blob/master/common/src/main/resources/assets/worldtools/WorldTools.png?raw=true" alt="" width="256" height="256" style="display: block; margin-left: auto; margin-right: auto;">
 </p>
 
-# WorldTools: World Downloader (Fabric / Forge)
+# WorldTools: World Downloader (Fabric)
 
 [![CurseForge Downloads](https://cf.way2muchnoise.eu/worldtools.svg?badge_style=for_the_badge)](https://www.curseforge.com/minecraft/mc-mods/worldtools)
 [![Modrinth Downloads](https://img.shields.io/modrinth/dt/FlFKBOIX?style=for-the-badge&logo=modrinth&label=Modrinth&color=00AF5C)](https://modrinth.com/mod/worldtools)
-[![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1-yellow?style=for-the-badge&link=https://www.minecraft.net/)](https://www.minecraft.net/)
-[![Minecraft](https://img.shields.io/badge/Minecraft-1.20.2-green?style=for-the-badge&link=https://www.minecraft.net/)](https://www.minecraft.net/)
-[![Minecraft](https://img.shields.io/badge/Minecraft-1.20.4-lime?style=for-the-badge&link=https://www.minecraft.net/)](https://www.minecraft.net/)
-[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-lime?style=for-the-badge&link=https://www.minecraft.net/)](https://www.minecraft.net/)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.11-lime?style=for-the-badge&link=https://www.minecraft.net/)](https://www.minecraft.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v3-blue?style=for-the-badge&link=https://www.gnu.org/licenses/gpl-3.0.en.html)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 WorldTools is a powerful Minecraft mod that allows you to capture and save high-detail snapshots of server worlds
@@ -21,7 +18,6 @@ sharing, or backup purposes on your local machine.
 
 <p align="center">
   <a href="https://fabricmc.net/wiki/install"><img src="https://cdn.jonasjones.dev/mod-badges/support-fabric.png" width="150px" alt="Fabric Supported"></a>
-  <a href="https://files.minecraftforge.net/net/minecraftforge/forge/"><img src="https://cdn.jonasjones.dev/mod-badges/support-forge.png" width="150px" alt="Forge Supported"></a>
 </p>
 
 <div align="center">
@@ -76,18 +72,6 @@ sharing, or backup purposes on your local machine.
     - [fabric-language-kotlin](https://www.curseforge.com/minecraft/mc-mods/fabric-language-kotlin)
     - [Cloth Config API](https://www.curseforge.com/minecraft/mc-mods/cloth-config)
     - [Mod Menu](https://modrinth.com/mod/modmenu)
-
-### Forge
-
-1. **Installation**:
-    - Install Forge by following the [Forge Download Link](https://files.minecraftforge.net/net/minecraftforge/forge/).
-    - Download the latest Forge version of WorldTools from
-      the [releases page](https://github.com/Avanatiker/WorldTools/releases)
-    - Place the WorldTools Forge mod JAR file in the "mods" folder of your Forge installation.
-
-2. **Prerequisites**: Make sure you have the following mods installed:
-    - [Kotlin For Forge](https://www.curseforge.com/minecraft/mc-mods/kotlin-for-forge)
-    - [Cloth Config API](https://www.curseforge.com/minecraft/mc-mods/cloth-config)
 
 ### Usage
 
@@ -146,10 +130,9 @@ Pull Request.
 
 ## Building
 
-1. Once forked and cloned, run `./gradlew build` to build the mod for both mod loaders.
-2. IntelliJ IDEA will generate run configurations for both mod loaders that can be used to run the mod in a test
-   environment.
-3. The Fabric mod JAR file can be found in `fabric/build/libs` and the Forge mod JAR file in `forge/build/libs`.
+1. Once forked and cloned, run `./gradlew :fabric:build` to build the Fabric mod.
+2. IntelliJ IDEA will generate run configurations for Fabric that can be used to run the mod in a test environment.
+3. The Fabric mod JAR file can be found in `fabric/build/libs`.
 
 ## ToDo
 

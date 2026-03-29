@@ -4,7 +4,7 @@ import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.GridWidget
-import net.minecraft.client.render.RenderLayer
+import net.minecraft.client.render.RenderLayers
 import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.render.VertexConsumerProvider
 import net.minecraft.client.util.math.MatrixStack
@@ -119,7 +119,7 @@ object Events {
     ) {
         if (!capturing || !config.render.renderNotYetCachedContainers) return
 
-        val vertexConsumer = vertexConsumers.getBuffer(RenderLayer.getLines()) ?: return
+        val vertexConsumer = vertexConsumers.getBuffer(RenderLayers.lines()) ?: return
 
         HotCache.unscannedBlockEntities
             .forEach { render(it.pos.vec, cameraX, cameraY, cameraZ, matrices, vertexConsumer, Color(config.render.unscannedContainerColor)) }
@@ -128,7 +128,7 @@ object Events {
             .forEach { render(it.value.pos.vec, cameraX, cameraY, cameraZ, matrices, vertexConsumer, Color(config.render.fromCacheLoadedContainerColor)) }
 
         HotCache.unscannedEntities
-            .forEach { render(it.entity.pos.add(-.5, .0, -.5), cameraX, cameraY, cameraZ, matrices, vertexConsumer, Color(config.render.unscannedEntityColor)) }
+            .forEach { render(it.entity.entityPos.add(-.5, .0, -.5), cameraX, cameraY, cameraZ, matrices, vertexConsumer, Color(config.render.unscannedEntityColor)) }
     }
 
     private val BlockPos.vec get() = Vec3d(x.toDouble(), y.toDouble(), z.toDouble())
@@ -201,7 +201,7 @@ object Events {
             //  need to find a reliable way to determine it
             //  if chunk is loaded, remove the entity? -> doesn't seem to work because server will remove entity before chunk is unloaded
             mc.player?.let { player ->
-                if (entity.pos.manhattanDistance2d(player.pos) < 32) { // todo: configurable distance, this should be small enough to be safe for most cases
+                if (entity.entityPos.manhattanDistance2d(player.entityPos) < 32) { // todo: configurable distance, this should be small enough to be safe for most cases
                     val cacheable = EntityCacheable(entity)
                     HotCache.entities[entity.chunkPos]?.remove(cacheable)
                 }

@@ -2,7 +2,6 @@ package org.waste.of.time.storage.serializable
 
 import net.minecraft.client.network.PlayerListEntry
 import net.minecraft.text.MutableText
-import net.minecraft.util.PathUtil
 import net.minecraft.util.WorldSavePath
 import net.minecraft.world.level.storage.LevelStorage.Session
 import org.waste.of.time.Utils
@@ -20,6 +19,7 @@ import org.waste.of.time.storage.PathTreeNode
 import org.waste.of.time.storage.StorageFlow
 import org.waste.of.time.storage.Storeable
 import java.net.InetSocketAddress
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.writeBytes
 
@@ -39,7 +39,7 @@ class MetadataStoreable : Storeable() {
         session.writeIconFile()
 
         session.getDirectory(WorldSavePath.ROOT).resolve(MOD_NAME).apply {
-            PathUtil.createDirectories(this)
+            Files.createDirectories(this)
 
             writePlayerEntryList()
             writeDimensionTree()

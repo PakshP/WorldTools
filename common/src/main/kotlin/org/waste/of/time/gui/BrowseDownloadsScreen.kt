@@ -25,16 +25,11 @@ object BrowseDownloadsScreen : Screen(Text.translatable("worldtools.gui.browser.
 
     class WorldDownloadEntry : AlwaysSelectedEntryListWidget.Entry<WorldDownloadEntry>() {
         override fun render(
-            context: DrawContext?,
-            index: Int,
-            y: Int,
-            x: Int,
-            entryWidth: Int,
-            entryHeight: Int,
+            context: DrawContext,
             mouseX: Int,
             mouseY: Int,
             hovered: Boolean,
-            tickDelta: Float
+            deltaTicks: Float
         ) {
             TODO("Not yet implemented")
         }

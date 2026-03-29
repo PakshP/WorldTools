@@ -1,10 +1,11 @@
 package org.waste.of.time.storage.serializable
 
 import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.nbt.NbtCompound
 import net.minecraft.nbt.NbtIo
+import net.minecraft.storage.NbtWriteView
 import net.minecraft.text.MutableText
 import net.minecraft.util.Util
+import net.minecraft.util.ErrorReporter
 import net.minecraft.util.WorldSavePath
 import net.minecraft.world.level.storage.LevelStorage.Session
 import org.waste.of.time.Utils.asString
@@ -17,8 +18,6 @@ import org.waste.of.time.storage.CustomRegionBasedStorage
 import org.waste.of.time.storage.Storeable
 import org.waste.of.time.storage.cache.HotCache
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.Path
 
 data class PlayerStoreable(
     val player: PlayerEntity
@@ -29,15 +28,15 @@ data class PlayerStoreable(
         get() = translateHighlight(
             "worldtools.capture.saved.player",
             player.name,
-            player.pos.asString(),
-            player.world.registryKey.value.path
+            player.entityPos.asString(),
+            player.entityWorld.registryKey.value.path
         )
 
     override val anonymizedInfo: MutableText
         get() = translateHighlight(
             "worldtools.capture.saved.player.anonymized",
             player.name,
-            player.world.registryKey.value.path
+            player.entityWorld.registryKey.value.path
         )
 
     override fun cache() {
@@ -52,7 +51,7 @@ data class PlayerStoreable(
         savePlayerData(player, session)
         session.createSaveHandler()
         StatisticManager.players++
-        StatisticManager.dimensions.add(player.world.registryKey.value.path)
+        StatisticManager.dimensions.add(player.entityWorld.registryKey.value.path)
     }
 
     private fun savePlayerData(player: PlayerEntity, session: Session) {
@@ -61,7 +60,9 @@ data class PlayerStoreable(
             playerDataDir.mkdirs()
 
             val newPlayerFile = File.createTempFile(player.uuidAsString + "-", ".dat", playerDataDir).toPath()
-            NbtIo.writeCompressed(player.writeNbt(NbtCompound()).apply {
+            val writeView = NbtWriteView.create(ErrorReporter.Impl(), player.entityWorld.registryManager)
+            player.saveData(writeView)
+            NbtIo.writeCompressed(writeView.nbt.apply {
                 if (config.entity.censor.lastDeathLocation) {
                     remove("LastDeathLocation")
                 }

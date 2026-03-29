@@ -3,6 +3,7 @@ package org.waste.of.time.storage.serializable
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.nbt.NbtHelper
 import net.minecraft.nbt.NbtIo
+import net.minecraft.nbt.NbtOps
 import net.minecraft.text.MutableText
 import net.minecraft.util.WorldSavePath
 import net.minecraft.world.level.storage.LevelStorage
@@ -43,7 +44,12 @@ class MapDataStoreable : Storeable() {
             }?.forEach { (component, mapState) ->
                 val id = component.id
                 NbtCompound().apply {
-                    put("data", mapState.writeNbt(NbtCompound(), world.registryManager))
+                    val encoded = net.minecraft.item.map.MapState.CODEC
+                        .encodeStart(NbtOps.INSTANCE, mapState)
+                        .result()
+                        .orElse(null) as? NbtCompound
+                        ?: return@forEach
+                    put("data", encoded)
                     NbtHelper.putDataVersion(this)
                     val mapFile = dataDirectory.resolve("map_$id${WorldTools.DAT_EXTENSION}")
                     if (!mapFile.exists()) {

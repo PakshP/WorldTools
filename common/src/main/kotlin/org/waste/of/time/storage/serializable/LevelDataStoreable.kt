@@ -2,10 +2,11 @@ package org.waste.of.time.storage.serializable
 
 import net.minecraft.SharedConstants
 import net.minecraft.nbt.*
+import net.minecraft.storage.NbtWriteView
 import net.minecraft.text.MutableText
+import net.minecraft.util.ErrorReporter
 import net.minecraft.util.Util
 import net.minecraft.util.WorldSavePath
-import net.minecraft.world.GameRules
 import net.minecraft.world.level.storage.LevelStorage.Session
 import org.waste.of.time.Utils.toByte
 import org.waste.of.time.WorldTools.DAT_EXTENSION
@@ -71,6 +72,8 @@ class LevelDataStoreable : Storeable() {
      */
     private fun serializeLevelData() = NbtCompound().apply {
         val player = CaptureManager.lastPlayer ?: mc.player ?: return@apply
+        val world = player.entityWorld
+        val gameVersion = SharedConstants.getGameVersion()
 
         mc.networkHandler?.brand?.let {
             put("ServerBrands", NbtList().apply {
@@ -83,51 +86,45 @@ class LevelDataStoreable : Storeable() {
         // skip removed features
 
         put("Version", NbtCompound().apply {
-            putString("Name", SharedConstants.getGameVersion().name)
-            putInt("Id", SharedConstants.getGameVersion().saveVersion.id)
-            putBoolean("Snapshot", !SharedConstants.getGameVersion().isStable)
-            putString("Series", SharedConstants.getGameVersion().saveVersion.series)
+            putString("Name", gameVersion.name())
+            putInt("Id", gameVersion.dataVersion().id())
+            putBoolean("Snapshot", !gameVersion.stable())
+            putString("Series", gameVersion.dataVersion().series())
         })
 
         NbtHelper.putDataVersion(this)
 
         put("WorldGenSettings", generatorMockNbt())
-        mc.networkHandler?.listedPlayerListEntries?.find {
-            it.profile.id == player.uuid
-        }?.let {
-            putInt("GameType", it.gameMode.id)
-        } ?: putInt("GameType", player.server?.defaultGameMode?.id ?: 0)
+        // modern client world APIs no longer expose all server properties; keep sane defaults
+        putInt("GameType", 0)
 
-        putInt("SpawnX", player.world.levelProperties.spawnPos.x)
-        putInt("SpawnY", player.world.levelProperties.spawnPos.y)
-        putInt("SpawnZ", player.world.levelProperties.spawnPos.z)
-        putFloat("SpawnAngle", player.world.levelProperties.spawnAngle)
-        putLong("Time", player.world.time)
-        putLong("DayTime", player.world.timeOfDay)
+        putInt("SpawnX", player.blockPos.x)
+        putInt("SpawnY", player.blockPos.y)
+        putInt("SpawnZ", player.blockPos.z)
+        putFloat("SpawnAngle", player.yaw)
+        putLong("Time", world.time)
+        putLong("DayTime", world.timeOfDay)
         putLong("LastPlayed", System.currentTimeMillis())
         putString("LevelName", currentLevelName)
         putInt("version", 19133)
         putInt("clearWeatherTime", 0) // not sure
         putInt("rainTime", 0) // not sure
-        putBoolean("raining", player.world.isRaining)
-        putBoolean("thundering", player.world.isThundering)
-        putBoolean("hardcore", player.server?.isHardcore ?: false)
+        putBoolean("raining", world.isRaining)
+        putBoolean("thundering", world.isThundering)
+        putBoolean("hardcore", false)
         putInt("thunderTime", 0) // not sure
         putBoolean("allowCommands", true) // not sure
         putBoolean("initialized", true) // not sure
 
-        player.world.worldBorder.write().writeNbt(this)
-
-        putByte("Difficulty", player.world.levelProperties.difficulty.id.toByte())
+        putByte("Difficulty", world.difficulty.id.toByte())
         putBoolean("DifficultyLocked", false) // not sure
 
-        // ToDo: Seems that the client side game rules were removed. Now only works for single player :/
-        val rules = player.world?.server?.gameRules?.genGameRules() ?: NbtCompound()
-        put("GameRules", rules)
-        put("Player", NbtCompound().apply {
-            player.writeNbt(this)
+        put("GameRules", NbtCompound())
+        put("Player", NbtWriteView.create(ErrorReporter.Impl(), world.registryManager).apply {
+            player.saveData(this)
+        }.nbt.apply {
             remove("LastDeathLocation") // can contain sensitive information
-            putString("Dimension", "minecraft:${player.world.registryKey.value.path}")
+            putString("Dimension", "minecraft:${world.registryKey.value.path}")
         })
 
         put("DragonFight", NbtCompound()) // not sure
@@ -139,21 +136,6 @@ class LevelDataStoreable : Storeable() {
         // skip wandering trader id
     }
 
-    private fun GameRules.genGameRules() = toNbt().apply {
-        val setting = config.world.gameRules
-        if (!setting.modifyGameRules) return@apply
-
-        putString(GameRules.DO_WARDEN_SPAWNING.name, setting.doWardenSpawning.toString())
-        putString(GameRules.DO_FIRE_TICK.name, setting.doFireTick.toString())
-        putString(GameRules.DO_VINES_SPREAD.name, setting.doVinesSpread.toString())
-        putString(GameRules.DO_MOB_SPAWNING.name, setting.doMobSpawning.toString())
-        putString(GameRules.DO_DAYLIGHT_CYCLE.name, setting.doDaylightCycle.toString())
-        putString(GameRules.KEEP_INVENTORY.name, setting.keepInventory.toString())
-        putString(GameRules.DO_MOB_GRIEFING.name, setting.doMobGriefing.toString())
-        putString(GameRules.DO_TRADER_SPAWNING.name, setting.doTraderSpawning.toString())
-        putString(GameRules.DO_PATROL_SPAWNING.name, setting.doPatrolSpawning.toString())
-        putString(GameRules.DO_WEATHER_CYCLE.name, setting.doWeatherCycle.toString())
-    }
 
     private fun generatorMockNbt() = NbtCompound().apply {
         putByte("bonus_chest", config.world.worldGenerator.bonusChest.toByte())

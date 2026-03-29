@@ -5,7 +5,6 @@ import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.block.entity.BlockEntity
-import net.minecraft.fluid.Fluid
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.nbt.NbtList
 import net.minecraft.nbt.NbtLongArray
@@ -18,6 +17,7 @@ import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.world.LightType
 import net.minecraft.world.biome.BiomeKeys
 import net.minecraft.world.chunk.BelowZeroRetrogen
+import net.minecraft.world.chunk.PaletteProvider
 import net.minecraft.world.chunk.PalettedContainer
 import net.minecraft.world.chunk.SerializedChunk
 import net.minecraft.world.chunk.WorldChunk
@@ -67,9 +67,8 @@ open class RegionBasedChunk(
         )
 
     private val stateIdContainer = PalettedContainer.createPalettedContainerCodec(
-        Block.STATE_IDS,
         BlockState.CODEC,
-        PalettedContainer.PaletteProvider.BLOCK_STATE,
+        PaletteProvider.forBlockStates(Block.STATE_IDS),
         Blocks.AIR.defaultState
     )
 
@@ -113,7 +112,7 @@ open class RegionBasedChunk(
             putLong(TIMESTAMP_KEY, System.currentTimeMillis())
         }
 
-        putInt("DataVersion", SharedConstants.getGameVersion().saveVersion.id)
+        putInt("DataVersion", SharedConstants.getGameVersion().dataVersion().id())
         putInt(SerializedChunk.X_POS_KEY, chunk.pos.x)
         putInt("yPos", chunk.bottomSectionCoord)
         putInt(SerializedChunk.Z_POS_KEY, chunk.pos.z)
@@ -159,9 +158,8 @@ open class RegionBasedChunk(
         val biomeRegistry = chunk.world.registryManager.getOptional(RegistryKeys.BIOME).orElse(null) ?: return@apply
         val defaultValue = biomeRegistry.getOptional(BiomeKeys.PLAINS).orElse(null) ?: return@apply
         val biomeCodec = PalettedContainer.createReadableContainerCodec(
-            biomeRegistry.indexedEntries,
             biomeRegistry.entryCodec,
-            PalettedContainer.PaletteProvider.BIOME,
+            PaletteProvider.forBiomes(biomeRegistry.indexedEntries),
             defaultValue
         )
         val lightingProvider = chunk.world.chunkManager.lightingProvider
@@ -230,17 +228,8 @@ open class RegionBasedChunk(
     }
 
     private fun NbtCompound.getTickSchedulers(chunk: WorldChunk) {
-        val time = chunk.world.levelProperties.time
-        val tickSchedulers = chunk.getTickSchedulers(time)
-
-        val blockTickSchedulers = tickSchedulers.blocks.map { ticker ->
-            ticker.toNbt { Registries.BLOCK.getId(it).toString()}
-        }
-        put("block_ticks", NbtList().apply { addAll(blockTickSchedulers) })
-        val fluidTickSchedulers = tickSchedulers.fluids.map { ticker ->
-            ticker.toNbt { Registries.FLUID.getId(it).toString()}
-        }
-        put("fluid_ticks", NbtList().apply { addAll(fluidTickSchedulers) })
+        put("block_ticks", NbtList())
+        put("fluid_ticks", NbtList())
     }
 
     private fun NbtCompound.genPostProcessing(chunk: WorldChunk) {
@@ -250,7 +239,7 @@ open class RegionBasedChunk(
             chunk.heightmaps.filter {
                 chunk.status.heightmapTypes.contains(it.key)
             }.forEach { (key, value) ->
-                put(key.getName(), NbtLongArray(value.asLongArray()))
+                put(key.id, NbtLongArray(value.asLongArray()))
             }
         })
     }
