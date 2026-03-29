@@ -1,163 +1,104 @@
 <p align="center">
-  <img src="https://github.com/Avanatiker/WorldTools/blob/master/common/src/main/resources/assets/worldtools/WorldTools.png?raw=true" alt="" width="256" height="256" style="display: block; margin-left: auto; margin-right: auto;">
+  <img src="common/src/main/resources/assets/worldtools/WorldTools.png" alt="WorldTools icon" width="256" height="256">
 </p>
 
-# WorldTools: World Downloader (Fabric)
+# WorldTools (Fabric 1.21.11 Fork)
 
-[![CurseForge Downloads](https://cf.way2muchnoise.eu/worldtools.svg?badge_style=for_the_badge)](https://www.curseforge.com/minecraft/mc-mods/worldtools)
-[![Modrinth Downloads](https://img.shields.io/modrinth/dt/FlFKBOIX?style=for-the-badge&logo=modrinth&label=Modrinth&color=00AF5C)](https://modrinth.com/mod/worldtools)
-[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.11-lime?style=for-the-badge&link=https://www.minecraft.net/)](https://www.minecraft.net/)
-[![License](https://img.shields.io/badge/License-GPL%20v3-blue?style=for-the-badge&link=https://www.gnu.org/licenses/gpl-3.0.en.html)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.11-lime?style=for-the-badge)](https://www.minecraft.net/)
+[![Loader](https://img.shields.io/badge/Loader-Fabric-ffbf00?style=for-the-badge)](https://fabricmc.net/)
+[![License](https://img.shields.io/badge/License-GPL%20v3-blue?style=for-the-badge)](LICENSE.md)
 
-WorldTools is a powerful Minecraft mod that allows you to capture and save high-detail snapshots of server worlds
-locally.
-It empowers you to download comprehensive information, including chunks, entities,
-chests, players, statistics, advancements, and detailed metadata.
-WorldTools ensures that you can retain an accurate and unaltered representation of the server's world for analysis,
-sharing, or backup purposes on your local machine.
+This repository is a maintained **Fabric-only fork** of WorldTools, updated for **Minecraft 1.21.11**.
 
-<p align="center">
-  <a href="https://fabricmc.net/wiki/install"><img src="https://cdn.jonasjones.dev/mod-badges/support-fabric.png" width="150px" alt="Fabric Supported"></a>
-</p>
+WorldTools captures a local world snapshot from a multiplayer session, including chunks, entities, players,
+statistics, advancements, map data, and capture metadata.
 
-<div align="center">
-  <a href="https://discord.gg/3y3ah5BtjB"><img src="https://invidget.switchblade.xyz/3y3ah5BtjB" alt="Link to the lambda discord server https://discord.gg/3y3ah5BtjB"></a>
-</div>
+## Upstream Credit
+
+This fork is based on the original WorldTools project:
+
+- Original project: `https://github.com/Avanatiker/WorldTools`
+- Original authors: Constructor, P529, rfresh/rfresh2 (and contributors)
+
+The intent of this fork is to keep the mod usable on modern Fabric versions while preserving upstream attribution.
+
+## Current Scope (This Fork)
+
+- Minecraft: **1.21.11**
+- Loader: **Fabric**
+- Java target: **21+**
+- Module layout: `common` + `fabric` (Forge removed)
 
 ## Features
 
-- **World Download (_default keybind:_ `F12`)**:
-  Initiate a quick download by hitting the `F12` key, which can be altered in the keybind settings.
-  Alternatively, you can access the GUI (_default keybind:_ `F10`) via the escape menu.
-  The GUI allows you to tailor the capture process according to your requirements.
-  WorldTools facilitates the capture of a wide range of crucial elements, ensuring no detail is missed.
-    - Chunks: Terrain, biomes and structures
-    - Entities: Inventories and attributes of most entities
-    - Containers: Contents of all tile entities like chests, shulkers, hoppers, furnaces, brewing stands, droppers,
-      dispensers etc...
-    - Players: Player positions and inventories
-    - Statistics: Full personal player statistics
-    - Advancements: Player advancements and progress
-    - Special Objects: Maps, Lecterns and Banners
-    - Detailed Metadata: Exhaustive capture details like modt, server version, timestamps, and more
+- Capture toggle with default keybind `F12`
+- Config/manager UI with default keybind `F10`
+- Captures:
+  - chunks (terrain/biomes/structures)
+  - entities and players
+  - container/block-entity data (when interacted with)
+  - player stats and advancements
+  - level/map metadata and export files
+- Output appears as a playable singleplayer world save
 
-- **Easy Access to Saved Worlds**: Your locally captured world save can be found in the single-player worlds list,
-  allowing you to load and explore it conveniently.
+## Install (Fabric)
 
-- **Advanced Configuration**: WorldTools provides a wide range of settings to customize the capture process to your
-  needs.
-  Select elements to capture, modify game rules, alter entity NBT data, and configure the capture process in detail.
+### Required mods
 
-## Getting Started
+- Fabric Loader
+- Fabric API
+- Fabric Language Kotlin
+- Cloth Config
+- Mod Menu (optional but recommended)
 
-### Fabric
+### Install steps
 
-<p>
-  <a title="Fabric API" href="https://www.curseforge.com/minecraft/mc-mods/fabric-api" target="_blank" rel="noopener noreferrer">
-    <img src="https://i.imgur.com/Ol1Tcf8.png" alt="" height="50" />
-  </a>
-  <a title="Fabric Language Kotlin" href="https://minecraft.curseforge.com/projects/fabric-language-kotlin" target="_blank" rel="noopener noreferrer">
-    <img src="https://i.imgur.com/c1DH9VL.png" alt="" height="50"/>
-  </a>
-</p>
+1. Install Fabric for Minecraft `1.21.11`.
+2. Download this fork's latest Fabric jar from the repository releases (or build locally).
+3. Put the jar in your `.minecraft/mods` folder.
 
-1. **Installation**:
-    - Install Fabric by following the [Fabric Installation Guide](https://fabricmc.net/wiki/install).
-    - Download the latest Fabric version of WorldTools from
-      the [releases page](https://github.com/Avanatiker/WorldTools/releases)
-    - Place the WorldTools Fabric mod JAR file in the "mods" folder of your Fabric installation.
+## Usage
 
-2. **Prerequisites**: Make sure you have the following mods installed:
-    - [Fabric API](https://www.curseforge.com/minecraft/mc-mods/fabric-api)
-    - [fabric-language-kotlin](https://www.curseforge.com/minecraft/mc-mods/fabric-language-kotlin)
-    - [Cloth Config API](https://www.curseforge.com/minecraft/mc-mods/cloth-config)
-    - [Mod Menu](https://modrinth.com/mod/modmenu)
+- Start/stop capture: `F12` or `/worldtools capture`
+- Open manager/config screen: `F10` or button in pause menu
+- During capture, open containers you want included in the saved snapshot
 
-### Usage
+## Build From Source
 
-1. **Download**:
-    - Enable capture mode: Hit `F12` the GUI (on ESC menu) or `/worldtools capture` to start capturing data.
-    - Play the game normally while WorldTools downloads the all data. You need to open containers like chests to capture
-      their contents.
-    - Save captured data: Hit `F12` the GUI (on ESC menu) or `/worldtools capture` again to stop capturing data and save the world.
-2. **Access Downloaded World**: Your downloaded world can be found in the single-player worlds list.
+### Windows (PowerShell)
 
-### File Structure
+```powershell
+./gradlew.bat :fabric:build --no-daemon
+```
 
-After capturing data, WorldTools creates the following files in the world directory's folder:
+Output jars are in `fabric/build/libs`.
 
-- `Capture Metadata.md`: Contains detailed information about the capture process itself.
+### Run dev client
 
-- `Dimension Tree.txt`: Provides a tree of all dimension folder paths of the server, not just the downloaded ones.
+```powershell
+./gradlew.bat :fabric:runClient --no-daemon
+```
 
-- `Player Entry List.csv`: Lists all players that were online during the capture including all known metadata.
+## Project Notes
 
-## Supported Languages
-
-For the best user experience, WorldTools is available in the following languages:
-
-- German
-- English (Pirate)
-- English (United States)
-- French (Canada)
-- French (France)
-- Dutch (Belgium)
-- Dutch (Netherlands)
-- Nynorsk (Norwegian)
-- Norwegian (Norway)
-- Portuguese (Brazil)
-- Portuguese (Portugal)
-- Russian
+- This fork intentionally removes old community links that are no longer maintained.
+- Some internal systems were adapted for 1.21.11 API changes (mixin targets, NBT/storage, render hooks).
+- If you report issues, include logs/crash reports and reproduction steps.
 
 ## Contributing
 
-Contributions are welcome!
-Please read our [Code of Conduct](https://github.com/Avanatiker/WorldTools/blob/master/CODE_OF_CONDUCT.md)
-and [Contributing Guidelines](https://github.com/Avanatiker/WorldTools/blob/master/CONTRIBUTING.md) before submitting a
-Pull Request.
+PRs are welcome. Please keep changes focused and include:
 
-1. Fork the repository and clone it to your local machine.  
-   `git clone https://github.com/Avanatiker/WorldTools`
-2. Create a new branch for your feature.  
-   `git checkout -b my-new-feature`
-3. Make your changes and commit them to your branch.  
-   `git commit -am 'Add some feature'`
-4. Push your changes to your fork.  
-   `git push origin my-new-feature`
-5. Open a Pull Request in this repository.
-6. Your Pull Request will be reviewed and merged as soon as possible.
-7. Wait for the next release to see your changes in action!
-
-## Building
-
-1. Once forked and cloned, run `./gradlew :fabric:build` to build the Fabric mod.
-2. IntelliJ IDEA will generate run configurations for Fabric that can be used to run the mod in a test environment.
-3. The Fabric mod JAR file can be found in `fabric/build/libs`.
-
-## ToDo
-
-### Fixes 
-- Fix statistics not updated on stop because the packet answer is not received before the world is saved
-- Fix on capture switch config button functionality in capture gui
-- Dimension, XP, selected item slot, player game type, is not saved to player nbt in level.dat
-- EntityLoadable
-- Better rendering
-
-### Features
-- Capture Mode: Choose between two capture modes: Full and Incremental. The Full mode captures all data from the server, while the Incremental mode only captures data that has changed since the last capture.
-- Save server datapack to the downloaded world
-- Save more entity data (NBT) like trades etc.
-- Live statistics: Data usage, time elapsed, etc.
+- target behavior
+- test/build result
+- affected files/modules
 
 ## License
 
-WorldTools is distributed under
-the [GNU General Public License v3.0](https://github.com/Avanatiker/WorldTools/blob/master/LICENSE.md).
+This fork remains under **GNU GPL v3.0**, same as upstream.
+
+See `LICENSE.md` for details.
 
 ---
 
-If you have any questions, concerns, or suggestions,
-you can visit our [official Discord server](https://discord.gg/3y3ah5BtjB).
-
-**Disclaimer:** WorldTools is not affiliated with Mojang Studios. Minecraft is a registered trademark of Mojang Studios.
-Use of the WorldTools software is subject to the terms outlined in the license agreement.
+**Disclaimer:** Not affiliated with Mojang Studios. Minecraft is a trademark of Mojang.
