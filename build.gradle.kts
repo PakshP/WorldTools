@@ -1,6 +1,10 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import net.fabricmc.loom.task.RemapJarTask
 
+val modVersion = project.properties["mod_version"]!! as String
+val minecraftVersion = project.properties["minecraft_version"]!! as String
+val releaseVersion = "$modVersion+$minecraftVersion"
+
 plugins {
     kotlin("jvm") version ("2.1.0")
     id("architectury-plugin") version "3.4-SNAPSHOT"
@@ -25,8 +29,6 @@ subprojects {
             isCanBeConsumed = false
             isCanBeResolved = true
         }
-        val versionWithMCVersion = "${project.properties["mod_version"]!!}+${project.properties["minecraft_version"]!!}"
-
         tasks.withType<JavaCompile> {
             options.encoding = "UTF-8"
             options.release = 21
@@ -35,7 +37,7 @@ subprojects {
         tasks {
             val shadowJarTask = named("shadowJar", ShadowJar::class)
             shadowJarTask {
-                archiveVersion = versionWithMCVersion
+                archiveVersion = releaseVersion
                 archiveClassifier.set("shadow")
                 configurations = listOf(shadowCommon)
             }
@@ -43,7 +45,7 @@ subprojects {
             "remapJar"(RemapJarTask::class) {
                 dependsOn(shadowJarTask)
                 inputFile = shadowJarTask.flatMap { it.archiveFile }
-                archiveVersion = versionWithMCVersion
+                archiveVersion = releaseVersion
                 archiveClassifier = ""
             }
             jar {
@@ -60,7 +62,7 @@ allprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
     base.archivesName.set(project.properties["archives_base_name"]!! as String)
     group = project.properties["maven_group"]!!
-    version = project.properties["mod_version"]!!
+    version = releaseVersion
 
     repositories {
         maven("https://api.modrinth.com/maven")
