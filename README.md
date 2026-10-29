@@ -13,6 +13,10 @@ This repository is a maintained **Fabric-only** build of WorldTools for **Minecr
 WorldTools captures a local world snapshot from a multiplayer session, including chunks, entities, players,
 statistics, advancements, map data, and capture metadata.
 
+> **Maintenance note:** Honestly, I mostly update this when I want to use it myself.
+> If a new Minecraft version drops and you'd like it ported, open an issue. If a few
+> other people, or I just want to, chime in that they want it too, I'll probably get around to it.
+
 ## Upstream Credit
 
 This project is based on the original WorldTools project:
