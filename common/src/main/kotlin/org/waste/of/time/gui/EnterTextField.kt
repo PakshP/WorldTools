@@ -1,28 +1,28 @@
 package org.waste.of.time.gui
 
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.font.TextRenderer
-import net.minecraft.client.input.KeyInput
-import net.minecraft.client.gui.widget.TextFieldWidget
-import net.minecraft.text.Text
-import org.lwjgl.glfw.GLFW
+import com.mojang.blaze3d.platform.InputConstants
+import net.minecraft.client.Minecraft
+import net.minecraft.client.gui.Font
+import net.minecraft.client.gui.components.EditBox
+import net.minecraft.client.input.KeyEvent
+import net.minecraft.network.chat.Component
 import org.waste.of.time.manager.CaptureManager
 
 class EnterTextField(
-    textRenderer: TextRenderer, x: Int, y: Int, width: Int, height: Int, message: Text, val client: MinecraftClient?
-) : TextFieldWidget(textRenderer, x, y, width, height, message) {
+    font: Font, x: Int, y: Int, width: Int, height: Int, message: Component, val minecraft: Minecraft
+) : EditBox(font, x, y, width, height, message) {
 
-    override fun keyPressed(input: KeyInput): Boolean {
-        if (input.key() == GLFW.GLFW_KEY_ENTER) {
+    override fun keyPressed(event: KeyEvent): Boolean {
+        if (event.key() == InputConstants.KEY_RETURN) {
             if (CaptureManager.capturing) {
-                client?.setScreen(null)
+                minecraft.gui.setScreen(null)
                 CaptureManager.stop()
             } else {
-                client?.setScreen(null)
-                CaptureManager.start(text)
+                minecraft.gui.setScreen(null)
+                CaptureManager.start(value)
             }
             return true
         }
-        return super.keyPressed(input)
+        return super.keyPressed(event)
     }
 }

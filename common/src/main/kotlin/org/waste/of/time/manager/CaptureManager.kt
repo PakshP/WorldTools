@@ -1,20 +1,18 @@
 package org.waste.of.time.manager
 
 import kotlinx.coroutines.*
-import net.minecraft.client.gui.screen.ConfirmScreen
-import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.network.packet.c2s.play.ClientStatusC2SPacket
-import net.minecraft.registry.RegistryKey
-import net.minecraft.registry.RegistryKeys
-import net.minecraft.text.Text
-import net.minecraft.world.World
+import net.minecraft.client.gui.screens.ConfirmScreen
+import net.minecraft.client.player.LocalPlayer
+import net.minecraft.network.chat.Component
+import net.minecraft.network.protocol.game.ServerboundClientCommandPacket
+import net.minecraft.resources.ResourceKey
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.Level
 import org.waste.of.time.WorldTools
 import org.waste.of.time.WorldTools.LOG
 import org.waste.of.time.WorldTools.config
 import org.waste.of.time.WorldTools.mc
 import org.waste.of.time.config.WorldToolsConfig
-import org.waste.of.time.manager.MessageManager.info
 import org.waste.of.time.storage.StorageFlow
 import org.waste.of.time.storage.cache.EntityCacheable
 import org.waste.of.time.storage.cache.HotCache
@@ -25,14 +23,14 @@ object CaptureManager {
     var capturing = false
     private var storeJob: Job? = null
     var currentLevelName: String = "Not yet initialized"
-    var lastPlayer: ClientPlayerEntity? = null
-    var lastWorldKeys = mutableSetOf<RegistryKey<World>>()
+    var lastPlayer: LocalPlayer? = null
+    var lastWorldKeys = mutableSetOf<ResourceKey<Level>>()
 
     val levelName: String
-        get() = if (mc.isInSingleplayer) {
-            mc.server?.serverMotd?.substringAfter(" - ")?.sanitizeWorldName() ?: "Singleplayer"
+        get() = if (mc.isLocalServer) {
+            mc.singleplayerServer?.motd?.substringAfter(" - ")?.sanitizeWorldName() ?: "Singleplayer"
         } else {
-            mc.networkHandler?.serverInfo?.address?.sanitizeWorldName() ?: "Multiplayer"
+            mc.connection?.serverData?.ip?.sanitizeWorldName() ?: "Multiplayer"
         }
 
     fun toggleCapture() {
@@ -45,7 +43,7 @@ object CaptureManager {
             return
         }
 
-        if (mc.isInSingleplayer) {
+        if (mc.isLocalServer) {
             MessageManager.sendInfo("worldtools.log.info.singleplayer_capture")
         }
 
@@ -62,15 +60,15 @@ object CaptureManager {
             potentialName.ifBlank { levelName }
         } ?: levelName
 
-        val worldExists = mc.levelStorage.savesDirectory.resolve(potentialName).toFile().exists()
+        val worldExists = mc.levelSource.baseDir.resolve(potentialName).toFile().exists()
         if (worldExists && !confirmed) {
-            mc.setScreen(ConfirmScreen(
+            mc.gui.setScreen(ConfirmScreen(
                 { yes ->
                     if (yes) start(potentialName, true)
-                    mc.setScreen(null)
+                    mc.gui.setScreen(null)
                 },
-                Text.translatable("worldtools.gui.capture.existing_world_confirm.title"),
-                Text.translatable("worldtools.gui.capture.existing_world_confirm.message", potentialName)
+                Component.translatable("worldtools.gui.capture.existing_world_confirm.title"),
+                Component.translatable("worldtools.gui.capture.existing_world_confirm.message", potentialName)
             ))
             return
         }
@@ -78,11 +76,11 @@ object CaptureManager {
         HotCache.clear()
         currentLevelName = potentialName
         lastPlayer = mc.player
-        lastWorldKeys.addAll(mc.networkHandler?.worldKeys ?: emptySet())
+        lastWorldKeys.addAll(mc.connection?.levels() ?: emptySet())
         MessageManager.sendInfo("worldtools.log.info.started_capture", potentialName)
         if (config.debug.logSettings) logCaptureSettingsState()
         storeJob = StorageFlow.launch(potentialName)
-        mc.networkHandler?.sendPacket(ClientStatusC2SPacket(ClientStatusC2SPacket.Mode.REQUEST_STATS))
+        mc.connection?.send(ServerboundClientCommandPacket(ServerboundClientCommandPacket.Action.REQUEST_STATS))
         capturing = true
 
         // Need to wait until the storage flow is running before syncing the cache
@@ -126,18 +124,19 @@ object CaptureManager {
     }
 
     private fun syncCacheFromWorldState() {
-        val world = mc.world ?: return
-        val diameter = world.chunkManager.chunks.diameter
+        val level = mc.level ?: return
+        val storage = level.chunkSource.storage
+        val viewRange = storage.viewRange
 
-        repeat(diameter * diameter) { i ->
-            world.chunkManager.chunks.getChunk(i)?.let { chunk ->
+        repeat(viewRange * viewRange) { i ->
+            storage.getChunk(i)?.let { chunk ->
                 RegionBasedChunk(chunk).cache()
                 BlockEntityLoadable(chunk).emit()
             }
         }
 
-        world.entities.forEach {
-            if (it is PlayerEntity) {
+        level.entitiesForRendering().forEach {
+            if (it is Player) {
                 PlayerStoreable(it).cache()
             } else {
                 EntityCacheable(it).cache()

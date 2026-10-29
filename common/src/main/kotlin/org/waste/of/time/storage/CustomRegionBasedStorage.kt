@@ -1,17 +1,17 @@
 package org.waste.of.time.storage
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap
-import net.minecraft.block.entity.BlockEntity
-import net.minecraft.nbt.NbtCompound
+import net.minecraft.core.BlockPos
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtIo
-import net.minecraft.registry.Registries
-import net.minecraft.util.Identifier
-import net.minecraft.util.ThrowableDeliverer
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.ChunkPos
-import net.minecraft.world.World
-import net.minecraft.world.storage.RegionFile
-import net.minecraft.world.storage.StorageKey
+import net.minecraft.resources.Identifier
+import net.minecraft.util.ExceptionCollector
+import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.chunk.storage.RegionFile
+import net.minecraft.world.level.chunk.storage.RegionStorageInfo
 import org.waste.of.time.WorldTools.MCA_EXTENSION
 import org.waste.of.time.WorldTools.MOD_NAME
 import org.waste.of.time.WorldTools.mc
@@ -30,12 +30,12 @@ open class CustomRegionBasedStorage internal constructor(
     companion object {
         // Seems to only be used for MC's profiler
         // simpler to just use a default key instead of wiring this all in here
-        val defaultStorageKey: StorageKey = StorageKey(MOD_NAME, World.OVERWORLD, "chunk")
+        val defaultStorageKey: RegionStorageInfo = RegionStorageInfo(MOD_NAME, Level.OVERWORLD, "chunk")
     }
 
     @Throws(IOException::class)
     fun getRegionFile(pos: ChunkPos): RegionFile {
-        val longPos = ChunkPos.toLong(pos.regionX, pos.regionZ)
+        val longPos = ChunkPos.pack(pos.regionX, pos.regionZ)
         cachedRegionFiles.getAndMoveToFirst(longPos)?.let { return it }
 
         if (cachedRegionFiles.size >= 256) {
@@ -50,54 +50,53 @@ open class CustomRegionBasedStorage internal constructor(
     }
 
     @Throws(IOException::class)
-    fun write(pos: ChunkPos, nbt: NbtCompound?) {
+    fun write(pos: ChunkPos, nbt: CompoundTag?) {
         val regionFile = getRegionFile(pos)
         if (nbt == null) {
-            regionFile.delete(pos)
+            regionFile.clear(pos)
         } else {
-            regionFile.getChunkOutputStream(pos).use { dataOutputStream ->
+            regionFile.getChunkDataOutputStream(pos).use { dataOutputStream ->
                 NbtIo.write(nbt, dataOutputStream as DataOutput)
             }
         }
     }
 
     private fun getNbtAt(chunkPos: ChunkPos) =
-        getRegionFile(chunkPos).getChunkInputStream(chunkPos)?.use { dataInputStream ->
-            NbtIo.readCompound(dataInputStream)
+        getRegionFile(chunkPos).getChunkDataInputStream(chunkPos)?.use { dataInputStream ->
+            NbtIo.read(dataInputStream)
         }
 
     fun getBlockEntities(chunkPos: ChunkPos): List<BlockEntity> =
         getNbtAt(chunkPos)
-            ?.getList("block_entities")
-            ?.orElse(null)
-            ?.filterIsInstance<NbtCompound>()
+            ?.getListOrEmpty("block_entities")
+            ?.filterIsInstance<CompoundTag>()
             ?.mapNotNull { compoundTag ->
                 val blockPos = BlockPos(
-                    compoundTag.getInt("x", 0),
-                    compoundTag.getInt("y", 0),
-                    compoundTag.getInt("z", 0)
+                    compoundTag.getIntOr("x", 0),
+                    compoundTag.getIntOr("y", 0),
+                    compoundTag.getIntOr("z", 0)
                 )
-                val blockStateIdentifier = Identifier.of(compoundTag.getString("id", "minecraft:air"))
-                val world = mc.world ?: return@mapNotNull null
+                val blockStateIdentifier = Identifier.parse(compoundTag.getStringOr("id", "minecraft:air"))
+                val level = mc.level ?: return@mapNotNull null
 
                 runCatching {
-                    val block = Registries.BLOCK.get(blockStateIdentifier)
-                    BlockEntity.createFromNbt(blockPos, block.defaultState, compoundTag, world.registryManager)
+                    val block = BuiltInRegistries.BLOCK.getValue(blockStateIdentifier)
+                    BlockEntity.loadStatic(blockPos, block.defaultBlockState(), compoundTag, level.registryAccess())
                 }.getOrNull()
             } ?: emptyList()
 
     @Throws(IOException::class)
     override fun close() {
-        val throwableDeliverer = ThrowableDeliverer<IOException>()
+        val exceptionCollector = ExceptionCollector<IOException>()
 
         cachedRegionFiles.values.filterNotNull().forEach { regionFile ->
             try {
                 regionFile.close()
             } catch (iOException: IOException) {
-                throwableDeliverer.add(iOException)
+                exceptionCollector.add(iOException)
             }
         }
 
-        throwableDeliverer.deliver()
+        exceptionCollector.throwIfPresent()
     }
 }

@@ -2,13 +2,13 @@
   <img src="common/src/main/resources/assets/worldtools/WorldTools.png" alt="WorldTools icon" width="256" height="256">
 </p>
 
-# WorldTools (Fabric 1.21.11)
+# WorldTools (Fabric 26.3)
 
-[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.11-lime?style=for-the-badge)](https://www.minecraft.net/)
+[![Minecraft](https://img.shields.io/badge/Minecraft-26.3-lime?style=for-the-badge)](https://www.minecraft.net/)
 [![Loader](https://img.shields.io/badge/Loader-Fabric-ffbf00?style=for-the-badge)](https://fabricmc.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v3-blue?style=for-the-badge)](LICENSE.md)
 
-This repository is a maintained **Fabric-only** build of WorldTools for **Minecraft 1.21.11**.
+This repository is a maintained **Fabric-only** build of WorldTools for **Minecraft 26.3**.
 
 WorldTools captures a local world snapshot from a multiplayer session, including chunks, entities, players,
 statistics, advancements, map data, and capture metadata.
@@ -24,11 +24,11 @@ The intent of this release line is to keep the mod usable on modern Fabric versi
 
 ## Current Scope
 
-- Minecraft: **1.21.11**
-- Mod version: **1.2.9**
+- Minecraft: **26.3**
+- Mod version: **1.3.0**
 - Loader: **Fabric**
-- Java target: **21+**
-- Module layout: `common` + `fabric` (Forge removed)
+- Java target: **25+**
+- Module layout: `common` sources compiled into the `fabric` Gradle project (Forge removed)
 
 ## Features
 
@@ -54,7 +54,7 @@ The intent of this release line is to keep the mod usable on modern Fabric versi
 
 ### Install steps
 
-1. Install Fabric for Minecraft `1.21.11`.
+1. Install Fabric for Minecraft `26.3`.
 2. Download the latest Fabric jar from the repository releases (or build locally).
 3. Put the jar in your `.minecraft/mods` folder.
 
@@ -65,6 +65,8 @@ The intent of this release line is to keep the mod usable on modern Fabric versi
 - During capture, open containers you want included in the saved snapshot
 
 ## Build From Source
+
+Requires JDK 25.
 
 ### Windows (PowerShell)
 
@@ -83,7 +85,8 @@ Output jars are in `fabric/build/libs`.
 ## Project Notes
 
 - This project intentionally removes old community links that are no longer maintained.
-- Some internal systems were adapted for 1.21.11 API changes (mixin targets, NBT/storage, render hooks).
+- Ported to Mojang's official names (26.x is unobfuscated, Yarn no longer exists) and the non-remapping Fabric Loom.
+- Captured worlds use the 26.x save layout (`dimensions/<namespace>/<dimension>/`, `players/data`, saved-data files for world gen settings and weather).
 - If you report issues, include logs/crash reports and reproduction steps.
 
 ## Contributing

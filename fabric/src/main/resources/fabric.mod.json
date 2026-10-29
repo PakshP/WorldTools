@@ -27,6 +27,7 @@
       "org.waste.of.time.fabric.WorldToolsModMenuIntegration"
     ]
   },
+  "accessWidener": "worldtools.accesswidener",
   "mixins": [
     "worldtools.mixins.common.json",
     "worldtools.mixins.fabric.json"
@@ -34,9 +35,9 @@
   "depends": {
     "fabricloader": ">=${fabric_loader_version}",
     "fabric-api": "*",
-    "minecraft": ["1.21.11"],
-    "java": ">=21",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=25",
     "fabric-language-kotlin": ">=${fabric_kotlin_version}",
-    "cloth-config": ">=15"
+    "cloth-config": ">=26.3"
   }
 }

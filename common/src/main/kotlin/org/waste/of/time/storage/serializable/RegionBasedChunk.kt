@@ -1,28 +1,21 @@
 package org.waste.of.time.storage.serializable
 
-import net.minecraft.SharedConstants
-import net.minecraft.block.Block
-import net.minecraft.block.BlockState
-import net.minecraft.block.Blocks
-import net.minecraft.block.entity.BlockEntity
-import net.minecraft.nbt.NbtCompound
-import net.minecraft.nbt.NbtList
-import net.minecraft.nbt.NbtLongArray
+import net.minecraft.core.BlockPos
+import net.minecraft.core.SectionPos
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.ListTag
+import net.minecraft.nbt.LongArrayTag
 import net.minecraft.nbt.NbtOps
-import net.minecraft.registry.Registries
-import net.minecraft.registry.RegistryKeys
-import net.minecraft.text.MutableText
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.ChunkSectionPos
-import net.minecraft.world.LightType
-import net.minecraft.world.biome.BiomeKeys
-import net.minecraft.world.chunk.BelowZeroRetrogen
-import net.minecraft.world.chunk.PaletteProvider
-import net.minecraft.world.chunk.PalettedContainer
-import net.minecraft.world.chunk.SerializedChunk
-import net.minecraft.world.chunk.WorldChunk
-import net.minecraft.world.gen.chunk.BlendingData
-import net.minecraft.world.level.storage.LevelStorage
+import net.minecraft.nbt.NbtUtils
+import net.minecraft.network.chat.MutableComponent
+import net.minecraft.world.level.LightLayer
+import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.chunk.LevelChunk
+import net.minecraft.world.level.chunk.storage.SerializableChunkData
+import net.minecraft.world.level.levelgen.BelowZeroRetrogen
+import net.minecraft.world.level.levelgen.blending.BlendingData
+import net.minecraft.world.level.storage.LevelStorageSource
 import org.waste.of.time.WorldTools.LOG
 import org.waste.of.time.WorldTools.TIMESTAMP_KEY
 import org.waste.of.time.WorldTools.config
@@ -35,8 +28,8 @@ import org.waste.of.time.storage.RegionBased
 import org.waste.of.time.storage.cache.HotCache
 
 open class RegionBasedChunk(
-    val chunk: WorldChunk,
-) : RegionBased(chunk.pos, chunk.world, "region"), Cacheable {
+    val chunk: LevelChunk,
+) : RegionBased(chunk.pos, chunk.level, "region"), Cacheable {
     // storing a reference to the block entities in the chunk to prevent them from being unloaded
     val cachedBlockEntities = mutableMapOf<BlockPos, BlockEntity>()
 
@@ -44,37 +37,31 @@ open class RegionBasedChunk(
         cachedBlockEntities.putAll(chunk.blockEntities)
 
         cachedBlockEntities.values.associateWith { fresh ->
-            HotCache.scannedBlockEntities[fresh.pos]
+            HotCache.scannedBlockEntities[fresh.blockPos]
         }.forEach { (fresh, cached) ->
             if (cached == null) return@forEach
-            cachedBlockEntities[fresh.pos] = cached
+            cachedBlockEntities[fresh.blockPos] = cached
         }
     }
 
     override fun shouldStore() = config.general.capture.chunks
 
-    override val verboseInfo: MutableText
+    override val verboseInfo: MutableComponent
         get() = translateHighlight(
             "worldtools.capture.saved.chunks",
             chunkPos,
             dimension
         )
 
-    override val anonymizedInfo: MutableText
+    override val anonymizedInfo: MutableComponent
         get() = translateHighlight(
             "worldtools.capture.saved.chunks.anonymized",
             dimension
         )
 
-    private val stateIdContainer = PalettedContainer.createPalettedContainerCodec(
-        BlockState.CODEC,
-        PaletteProvider.forBlockStates(Block.STATE_IDS),
-        Blocks.AIR.defaultState
-    )
-
     override fun cache() {
         HotCache.chunks[chunkPos] = this
-        HotCache.savedChunks.add(chunkPos.toLong())
+        HotCache.savedChunks.add(chunkPos.pack())
     }
 
     override fun flush() {
@@ -87,52 +74,52 @@ open class RegionBasedChunk(
     }
 
     override fun writeToStorage(
-        session: LevelStorage.Session,
+        session: LevelStorageSource.LevelStorageAccess,
         storage: CustomRegionBasedStorage,
         cachedStorages: MutableMap<String, CustomRegionBasedStorage>
     ) {
         // avoiding `emit` here due to flow order issues when capture is stopped
         // i.e., if EndFlow is emitted before this,
         // these are not written because they're behind it in the flow
-        HotCache.getEntitySerializableForChunk(chunkPos, world)
+        HotCache.getEntitySerializableForChunk(chunkPos, level)
             ?.store(session, cachedStorages)
             ?: run {
                 // remove any previously stored entities in this chunk in case there are no entities to store
-                RegionBasedEntities(chunkPos, emptySet(), world).store(session, cachedStorages)
+                RegionBasedEntities(chunkPos, emptySet(), level).store(session, cachedStorages)
         }
         if (chunk.isEmpty) return
         super.writeToStorage(session, storage, cachedStorages)
     }
 
     /**
-     * See [net.minecraft.world.ChunkSerializer.serialize]
+     * See [net.minecraft.world.level.chunk.storage.SerializableChunkData.write]
      */
-    override fun compound() = NbtCompound().apply {
+    override fun compound() = CompoundTag().apply {
         if (config.world.metadata.captureTimestamp) {
             putLong(TIMESTAMP_KEY, System.currentTimeMillis())
         }
 
-        putInt("DataVersion", SharedConstants.getGameVersion().dataVersion().id())
-        putInt(SerializedChunk.X_POS_KEY, chunk.pos.x)
-        putInt("yPos", chunk.bottomSectionCoord)
-        putInt(SerializedChunk.Z_POS_KEY, chunk.pos.z)
-        putLong("LastUpdate", chunk.world.time)
+        NbtUtils.addCurrentDataVersion(this)
+        putInt(SerializableChunkData.X_POS_TAG, chunk.pos.x)
+        putInt("yPos", chunk.minSectionY)
+        putInt(SerializableChunkData.Z_POS_TAG, chunk.pos.z)
+        putLong("LastUpdate", chunk.level.levelData.gameTime)
         putLong("InhabitedTime", chunk.inhabitedTime)
-        putString("Status", Registries.CHUNK_STATUS.getId(chunk.status).toString())
+        putString("Status", BuiltInRegistries.CHUNK_STATUS.getKey(chunk.persistedStatus).toString())
 
         genBackwardsCompat(chunk)
 
-        if (!chunk.upgradeData.isDone) {
-            put("UpgradeData", chunk.upgradeData.toNbt())
+        if (!chunk.upgradeData.isEmpty) {
+            put("UpgradeData", chunk.upgradeData.write())
         }
 
-        put(SerializedChunk.SECTIONS_KEY, generateSections(chunk))
+        put(SerializableChunkData.SECTIONS_TAG, generateSections(chunk))
 
-        if (chunk.isLightOn) {
-            putBoolean(SerializedChunk.IS_LIGHT_ON_KEY, true)
+        if (chunk.isLightCorrect) {
+            putBoolean(SerializableChunkData.IS_LIGHT_ON_TAG, true)
         }
 
-        put("block_entities", NbtList().apply {
+        put("block_entities", ListTag().apply {
             upsertBlockEntities()
         })
 
@@ -144,9 +131,9 @@ open class RegionBasedChunk(
             LOG.info("Chunk saved: $chunkPos ($dimension)")
     }
 
-    private fun NbtList.upsertBlockEntities() {
+    private fun ListTag.upsertBlockEntities() {
         cachedBlockEntities.entries.map { (_, blockEntity) ->
-            blockEntity.createNbtWithIdentifyingData(world.registryManager).apply {
+            blockEntity.saveWithFullMetadata(level.registryAccess()).apply {
                 putBoolean("keepPacked", false)
             }
         }.apply {
@@ -154,29 +141,26 @@ open class RegionBasedChunk(
         }
     }
 
-    private fun generateSections(chunk: WorldChunk) = NbtList().apply {
-        val biomeRegistry = chunk.world.registryManager.getOptional(RegistryKeys.BIOME).orElse(null) ?: return@apply
-        val defaultValue = biomeRegistry.getOptional(BiomeKeys.PLAINS).orElse(null) ?: return@apply
-        val biomeCodec = PalettedContainer.createReadableContainerCodec(
-            biomeRegistry.entryCodec,
-            PaletteProvider.forBiomes(biomeRegistry.indexedEntries),
-            defaultValue
-        )
-        val lightingProvider = chunk.world.chunkManager.lightingProvider
+    private fun generateSections(chunk: LevelChunk) = ListTag().apply {
+        val containerFactory = chunk.level.palettedContainerFactory()
+        val blockStatesCodec = containerFactory.blockStatesContainerCodec()
+        val biomeCodec = containerFactory.biomeContainerCodec()
+        val lightEngine = chunk.level.chunkSource.lightEngine
+        val sections = chunk.sections
 
-        (lightingProvider.bottomY until lightingProvider.topY).forEach { y ->
-            val sectionCoord = chunk.sectionCoordToIndex(y)
-            val inSection = sectionCoord in (0 until chunk.sectionArray.size)
+        (lightEngine.minLightSection until lightEngine.maxLightSection).forEach { y ->
+            val sectionIndex = chunk.getSectionIndexFromSectionY(y)
+            val inSection = sectionIndex in sections.indices
             val blockLightSection =
-                lightingProvider[LightType.BLOCK].getLightSection(ChunkSectionPos.from(chunk.pos, y))
+                lightEngine.getLayerListener(LightLayer.BLOCK).getDataLayerData(SectionPos.of(chunk.pos, y))
             val skyLightSection =
-                lightingProvider[LightType.SKY].getLightSection(ChunkSectionPos.from(chunk.pos, y))
+                lightEngine.getLayerListener(LightLayer.SKY).getDataLayerData(SectionPos.of(chunk.pos, y))
 
             if (!inSection && blockLightSection == null && skyLightSection == null) return@forEach
 
-            add(NbtCompound().apply {
+            add(CompoundTag().apply {
                 if (inSection) {
-                    val chunkSection = chunk.sectionArray[sectionCoord]
+                    val chunkSection = sections[sectionIndex]
                     /**
                      * Mods like Bobby may also try serializing chunk data concurrently on separate threads
                      * PalettedContainer contains a lock that is acquired during read/write operations
@@ -184,24 +168,18 @@ open class RegionBasedChunk(
                      * Force disabling checking the lock's status here as it should be safe to
                      * read here, no write operations should happen after the chunk is unloaded
                      */
-                    (chunkSection.blockStateContainer as IPalettedContainerExtension).setWTIgnoreLock(true)
-                    (chunkSection.biomeContainer as IPalettedContainerExtension).setWTIgnoreLock(true)
-                    put(
-                        "block_states",
-                        stateIdContainer.encodeStart(NbtOps.INSTANCE, chunkSection.blockStateContainer).getOrThrow()
-                    )
-                    put(
-                        "biomes",
-                        biomeCodec.encodeStart(NbtOps.INSTANCE, chunkSection.biomeContainer).getOrThrow()
-                    )
-                    (chunkSection.blockStateContainer as IPalettedContainerExtension).setWTIgnoreLock(false)
-                    (chunkSection.biomeContainer as IPalettedContainerExtension).setWTIgnoreLock(false)
+                    (chunkSection.states as IPalettedContainerExtension).setWTIgnoreLock(true)
+                    (chunkSection.biomes as? IPalettedContainerExtension)?.setWTIgnoreLock(true)
+                    store("block_states", blockStatesCodec, chunkSection.states)
+                    store("biomes", biomeCodec, chunkSection.biomes)
+                    (chunkSection.states as IPalettedContainerExtension).setWTIgnoreLock(false)
+                    (chunkSection.biomes as? IPalettedContainerExtension)?.setWTIgnoreLock(false)
                 }
-                if (blockLightSection != null && !blockLightSection.isUninitialized) {
-                    putByteArray(SerializedChunk.BLOCK_LIGHT_KEY, blockLightSection.asByteArray())
+                if (blockLightSection != null && !blockLightSection.isEmpty) {
+                    putByteArray(SerializableChunkData.BLOCK_LIGHT_TAG, blockLightSection.data)
                 }
-                if (skyLightSection != null && !skyLightSection.isUninitialized) {
-                    putByteArray(SerializedChunk.SKY_LIGHT_KEY, skyLightSection.asByteArray())
+                if (skyLightSection != null && !skyLightSection.isEmpty) {
+                    putByteArray(SerializableChunkData.SKY_LIGHT_TAG, skyLightSection.data)
                 }
                 if (isEmpty) return@forEach
                 putByte("Y", y.toByte())
@@ -209,9 +187,9 @@ open class RegionBasedChunk(
         }
     }
 
-    private fun NbtCompound.genBackwardsCompat(chunk: WorldChunk) {
-        chunk.blendingData?.let { bleedingData ->
-            BlendingData.Serialized.CODEC.encodeStart(NbtOps.INSTANCE, bleedingData.toSerialized()).resultOrPartial {
+    private fun CompoundTag.genBackwardsCompat(chunk: LevelChunk) {
+        chunk.blendingData?.let { blendingData ->
+            BlendingData.Packed.CODEC.encodeStart(NbtOps.INSTANCE, blendingData.pack()).resultOrPartial {
                 LOG.error(it)
             }.ifPresent {
                 put("blending_data", it)
@@ -227,19 +205,19 @@ open class RegionBasedChunk(
         }
     }
 
-    private fun NbtCompound.getTickSchedulers(chunk: WorldChunk) {
-        put("block_ticks", NbtList())
-        put("fluid_ticks", NbtList())
+    private fun CompoundTag.getTickSchedulers(chunk: LevelChunk) {
+        put("block_ticks", ListTag())
+        put("fluid_ticks", ListTag())
     }
 
-    private fun NbtCompound.genPostProcessing(chunk: WorldChunk) {
-        put("PostProcessing", SerializedChunk.toNbt(chunk.postProcessingLists))
+    private fun CompoundTag.genPostProcessing(chunk: LevelChunk) {
+        put("PostProcessing", SerializableChunkData.packOffsets(chunk.postProcessing))
 
-        put(SerializedChunk.HEIGHTMAPS_KEY, NbtCompound().apply {
+        put(SerializableChunkData.HEIGHTMAPS_TAG, CompoundTag().apply {
             chunk.heightmaps.filter {
-                chunk.status.heightmapTypes.contains(it.key)
+                chunk.persistedStatus.heightmapsAfter().contains(it.key)
             }.forEach { (key, value) ->
-                put(key.id, NbtLongArray(value.asLongArray()))
+                put(key.serializationKey, LongArrayTag(value.rawData))
             }
         })
     }

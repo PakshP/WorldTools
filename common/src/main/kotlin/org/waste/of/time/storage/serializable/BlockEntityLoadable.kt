@@ -1,10 +1,10 @@
 package org.waste.of.time.storage.serializable
 
-import net.minecraft.block.entity.BlockEntity
-import net.minecraft.block.entity.LecternBlockEntity
-import net.minecraft.block.entity.LockableContainerBlockEntity
-import net.minecraft.world.chunk.WorldChunk
-import net.minecraft.world.level.storage.LevelStorage
+import net.minecraft.world.level.block.entity.BaseContainerBlockEntity
+import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.entity.LecternBlockEntity
+import net.minecraft.world.level.chunk.LevelChunk
+import net.minecraft.world.level.storage.LevelStorageSource
 import org.waste.of.time.WorldTools.config
 import org.waste.of.time.manager.MessageManager.translateHighlight
 import org.waste.of.time.storage.CustomRegionBasedStorage
@@ -13,7 +13,7 @@ import org.waste.of.time.storage.cache.HotCache.isSupported
 import org.waste.of.time.storage.cache.HotCache.markScanned
 
 class BlockEntityLoadable(
-    chunk: WorldChunk
+    chunk: LevelChunk
 ) : RegionBasedChunk(chunk) {
     private var migrated = false
     override fun shouldStore() =
@@ -22,16 +22,16 @@ class BlockEntityLoadable(
     override val verboseInfo = translateHighlight(
         "worldtools.capture.loaded.block_entities",
         chunk.pos,
-        chunk.world.registryKey.value.path
+        chunk.level.dimension().identifier().path
     )
 
     override val anonymizedInfo = translateHighlight(
         "worldtools.capture.loaded.block_entities.anonymized",
-        chunk.world.registryKey.value.path
+        chunk.level.dimension().identifier().path
     )
 
     fun load(
-        session: LevelStorage.Session,
+        session: LevelStorageSource.LevelStorageAccess,
         cachedStorages: MutableMap<String, CustomRegionBasedStorage>
     ): Boolean {
         generateStorage(session, cachedStorages)
@@ -40,10 +40,10 @@ class BlockEntityLoadable(
             .forEach { existing ->
                 HotCache.chunks[chunkPos]
                     ?.cachedBlockEntities
-                    ?.get(existing.pos)
+                    ?.get(existing.blockPos)
                     ?.let { blockEntity ->
                         when (blockEntity) {
-                            is LockableContainerBlockEntity -> blockEntity.migrateData(existing)
+                            is BaseContainerBlockEntity -> blockEntity.migrateData(existing)
                             is LecternBlockEntity -> blockEntity.migrateData(existing)
                         }
                     }
@@ -51,10 +51,10 @@ class BlockEntityLoadable(
         return migrated
     }
 
-    private fun LockableContainerBlockEntity.migrateData(existing: BlockEntity) {
-        if (existing !is LockableContainerBlockEntity) return
+    private fun BaseContainerBlockEntity.migrateData(existing: BlockEntity) {
+        if (existing !is BaseContainerBlockEntity) return
         if (!isEmpty) return
-        heldStacks = existing.heldStacks
+        items = existing.items
         markScanned(true)
         migrated = true
     }

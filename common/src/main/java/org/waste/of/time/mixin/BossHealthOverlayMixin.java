@@ -1,7 +1,7 @@
 package org.waste.of.time.mixin;
 
-import net.minecraft.client.gui.hud.BossBarHud;
-import net.minecraft.client.gui.hud.ClientBossBar;
+import net.minecraft.client.gui.components.BossHealthOverlay;
+import net.minecraft.client.gui.components.LerpingBossEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -10,8 +10,8 @@ import org.waste.of.time.manager.CaptureManager;
 
 import java.util.*;
 
-@Mixin(BossBarHud.class)
-public class BossBarHudMixin {
+@Mixin(BossHealthOverlay.class)
+public class BossHealthOverlayMixin {
 
     /**
      * This mixin is used to add the capture bar and the progress bar to the boss bar overlay and to make sure that
@@ -23,18 +23,18 @@ public class BossBarHudMixin {
 
     // todo: remove redirects to avoid mod conflicts
     //  either replace them with injects or use MixinExtras
-    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Ljava/util/Map;values()Ljava/util/Collection;"))
-    public Collection<ClientBossBar> modifyValues(Map<UUID, ClientBossBar> bossBars) {
+    @Redirect(method = "extractRenderState", at = @At(value = "INVOKE", target = "Ljava/util/Map;values()Ljava/util/Collection;"))
+    public Collection<LerpingBossEvent> modifyValues(Map<UUID, LerpingBossEvent> bossBars) {
         if (!CaptureManager.INSTANCE.getCapturing()) return bossBars.values();
-        List<ClientBossBar> newBossBars = new ArrayList<>(bossBars.size() + 2);
+        List<LerpingBossEvent> newBossBars = new ArrayList<>(bossBars.size() + 2);
         BarManager.INSTANCE.getCaptureBar().ifPresent(newBossBars::add);
         BarManager.INSTANCE.progressBar().ifPresent(newBossBars::add);
         newBossBars.addAll(bossBars.values());
         return newBossBars;
     }
 
-    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Ljava/util/Map;isEmpty()Z"))
-    public boolean modifyIsEmpty(Map<UUID, ClientBossBar> bossBars) {
+    @Redirect(method = "extractRenderState", at = @At(value = "INVOKE", target = "Ljava/util/Map;isEmpty()Z"))
+    public boolean modifyIsEmpty(Map<UUID, LerpingBossEvent> bossBars) {
         if (!CaptureManager.INSTANCE.getCapturing()) return bossBars.isEmpty();
         return bossBars.isEmpty()
                 && BarManager.INSTANCE.getCaptureBar().isEmpty()
